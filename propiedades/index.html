@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Tres Manzanas · Gestión de Propiedades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;1,9..144,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F7F4EF;
+  --card: #FFFFFF;
+  --navy: #1C2B3A;
+  --navy2: #2A3F55;
+  --accent: #E8874A;
+  --accent-light: #FFF0E6;
+  --green: #2D7A4F;
+  --green-light: #E8F5EE;
+  --red: #C0392B;
+  --red-light: #FFE8E8;
+  --blue: #2A6099;
+  --blue-light: #E6F0FA;
+  --muted: #8A9BAE;
+  --border: #E2DDD6;
+  --text: #1C2B3A;
+  --text2: #5A7A96;
+  --shadow: 0 2px 16px rgba(28,43,58,0.08);
+  --radius: 14px;
+  --tab-h: 64px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow-x:hidden}
+input,select,textarea,button{font-family:'DM Sans',sans-serif}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#D0C9C0;border-radius:4px}
+
+/* LAYOUT */
+#app{display:flex;flex-direction:column;min-height:100vh;max-width:700px;margin:0 auto}
+#header{background:var(--navy);padding:16px 16px 12px;padding-top:max(16px,env(safe-area-inset-top,16px));position:sticky;top:0;z-index:100}
+#header-inner{display:flex;justify-content:space-between;align-items:center}
+.logo-text{font-family:'Fraunces',serif;font-size:18px;color:#fff;font-weight:800;letter-spacing:-0.02em}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:1px}
+#save-status{font-size:12px;font-weight:600;transition:color .3s;color:transparent}
+#save-status.saving{color:#E8874A}
+#save-status.saved{color:#4CAF78}
+#save-status.error{color:#E05555}
+
+#content{flex:1;padding:18px 14px calc(var(--tab-h) + 20px + env(safe-area-inset-bottom,0px))}
+#tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:700px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab-btn{flex:1;background:none;border:none;padding:10px 2px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab-icon{font-size:18px;transition:filter .2s}
+.tab-label{font-size:10px;font-weight:600;transition:color .2s;color:var(--muted)}
+.tab-btn.active .tab-label{color:var(--accent)}
+.tab-btn:not(.active) .tab-icon{filter:grayscale(1) opacity(.45)}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:12px}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.kpi-icon{font-size:20px;margin-bottom:6px}
+.kpi-value{font-family:'Fraunces',serif;font-size:19px;font-weight:800}
+.kpi-label{font-size:12px;font-weight:600;color:var(--text);margin-top:2px}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* SECTION HEADERS */
+.sec-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sec-title{font-family:'Fraunces',serif;font-size:22px;color:var(--navy)}
+h2.page-title{font-family:'Fraunces',serif;font-size:22px;color:var(--navy);margin-bottom:18px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:10px;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:'DM Sans',sans-serif}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--accent);color:#fff;padding:11px 20px;font-size:15px}
+.btn-primary.full{width:100%}
+.btn-sm{padding:8px 14px;font-size:13px}
+.btn-secondary{background:#F1EDE6;color:var(--navy)}
+.btn-ghost{background:transparent;color:var(--accent);border:none;font-weight:700;font-size:13px;cursor:pointer;padding:0}
+.btn-icon{background:#F1EDE6;border:none;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:14px}
+.btn-icon.danger{background:var(--red-light)}
+
+/* FORM */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,35,.56);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:20px 18px max(28px,env(safe-area-inset-bottom,28px))}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700}
+.modal-close{background:#F1EDE6;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:#FDFCFA;outline:none;-webkit-appearance:none}
+.field textarea{resize:vertical;min-height:60px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.form-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+
+/* BADGES */
+.badge{display:inline-block;border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.badge-orange{background:var(--accent-light);color:#C0622A}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-gray{background:#F0EDE8;color:var(--text2)}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.filter-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+
+/* SEARCH */
+.search-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:var(--card);outline:none;margin-bottom:14px}
+.search-input:focus{border-color:var(--accent)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.empty-msg{font-size:14px;margin-bottom:16px}
+
+/* ITEM ROWS */
+.item-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+.item-sub{font-size:13px;color:var(--text2)}
+.item-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.item-amount{font-size:15px;font-weight:800;color:var(--text)}
+.item-actions{display:flex;gap:5px;margin-left:8px;flex-shrink:0}
+
+/* CHART BARS */
+.chart-row{margin-bottom:12px}
+.chart-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:3px}
+.chart-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.chart-val{width:62px;font-size:10px;text-align:right;flex-shrink:0}
+.chart-track{flex:1;background:#F1EDE6;border-radius:4px;height:9px}
+.chart-fill{height:9px;border-radius:4px;transition:width .4s}
+
+/* DIVIDER ROWS */
+.divider-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
+.divider-row:last-child{border-bottom:none}
+
+/* DATA MODAL */
+.tab-switcher{display:flex;background:#F1EDE6;border-radius:12px;padding:4px;margin-bottom:16px}
+.tab-sw-btn{flex:1;padding:9px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.tab-sw-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.info-box{border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:14px;line-height:1.6}
+.info-box.orange{background:var(--accent-light);border:1.5px solid #F5CFA0;color:#7A4A1C}
+.info-box.blue{background:var(--blue-light);border:1.5px solid #B8CAF0;color:#2A4A7A}
+.info-box.gray{background:#F1EDE6;border:none;color:var(--text2);font-size:13px}
+
+/* ALERT/WARNING */
+.alert{border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:12px}
+.alert-orange{background:var(--accent-light);color:#7A4A1C}
+.alert-red{background:var(--red-light);color:var(--red)}
+.alert-green{background:var(--green-light);color:var(--green)}
+
+/* HEADER ACTION BUTTON */
+.header-btn{background:var(--navy2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;color:#C8D8E8;font-weight:700;font-family:'DM Sans',sans-serif}
+.header-btn.highlight{background:var(--accent);color:#fff}
+
+/* NOTICE BANNER */
+#banner{background:var(--accent-light);border-bottom:1.5px solid #F5CFA0;padding:9px 16px;display:none;justify-content:space-between;align-items:center}
+#banner.show{display:flex}
+.banner-text{font-size:13px;color:#7A4A1C}
+.banner-btn{background:var(--accent);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* VENCIMIENTO ALERTS */
+.venc-warn{font-size:12px;margin-top:5px;font-weight:600}
+.venc-warn.red{color:var(--red)}
+.venc-warn.orange{color:#C0622A}
+.venc-warn.gray{color:var(--text2)}
+
+@media(min-width:600px){
+  #header{padding:18px 24px 14px}
+  #content{padding:24px 24px calc(var(--tab-h) + 24px + env(safe-area-inset-bottom,0px))}
+  .modal{border-radius:20px;max-height:85vh;margin:auto}
+  .modal-overlay{align-items:center;padding:20px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-inner">
+      <div>
+        <div class="logo-text">🍎 Tres Manzanas</div>
+        <div class="logo-sub">Gestión de Propiedades</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="save-status">✓ Guardado</span>
+        <button class="header-btn" id="btn-datos" onclick="openDataModal()">☁️ Datos</button>
+      </div>
+    </div>
+  </div>
+  <div id="banner">
+    <span class="banner-text">💡 Recordá guardar backup antes de cerrar</span>
+    <button class="banner-btn" onclick="openDataModal()">Guardar ahora</button>
+  </div>
+  <div id="content"></div>
+  <nav id="tabs">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="tab-icon">⊞</span><span class="tab-label">Inicio</span>
+    </button>
+    <button class="tab-btn" data-tab="propiedades" onclick="switchTab('propiedades')">
+      <span class="tab-icon">🏠</span><span class="tab-label">Propiedades</span>
+    </button>
+    <button class="tab-btn" data-tab="inquilinos" onclick="switchTab('inquilinos')">
+      <span class="tab-icon">👤</span><span class="tab-label">Inquilinos</span>
+    </button>
+    <button class="tab-btn" data-tab="cobros" onclick="switchTab('cobros')">
+      <span class="tab-icon">💰</span><span class="tab-label">Cobros</span>
+    </button>
+    <button class="tab-btn" data-tab="gastos" onclick="switchTab('gastos')">
+      <span class="tab-icon">📋</span><span class="tab-label">Gastos</span>
+    </button>
+    <button class="tab-btn" data-tab="informes" onclick="switchTab('informes')">
+      <span class="tab-icon">📊</span><span class="tab-label">Informes</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────
+const LS_KEY = 'tresmanzanas-propiedades-v1';
+let state = { propiedades:[], inquilinos:[], cobros:[], gastos:[] };
+let currentTab = 'dashboard';
+let currentFilter = 'Todos';
+let searchQ = '';
+
+const TIPOS_PROP = ['Departamento','Casa','Local comercial','Oficina','PH','Cochera','Otro'];
+const TIPOS_GASTO = ['Mantenimiento','Impuestos','Servicios','Reparación','Seguros','Administración','Otro'];
+const ESTADOS_COBRO = ['Pendiente','Pagado','Parcial','Atrasado'];
+
+// ─── PERSISTENCE ──────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch(e) { console.error('Load error', e); }
+}
+
+let saveTimer;
+function save() {
+  setSaveStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      setSaveStatus('saved');
+    } catch(e) {
+      setSaveStatus('error');
+    }
+  }, 600);
+}
+
+function setSaveStatus(s) {
+  const el = document.getElementById('save-status');
+  el.className = s;
+  el.textContent = s==='saving'?'⏳ Guardando…': s==='saved'?'✓ Guardado': '⚠️ Error';
+  if (s==='saved') setTimeout(()=>{ el.className=''; el.textContent=''; }, 3000);
+}
+
+// ─── UTILS ────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2,10);
+const today = () => new Date().toISOString().split('T')[0];
+const fmtCurrency = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
+const fmtDate = d => { if(!d) return '—'; return new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function badge(text) {
+  const map = {'Pagado':'green','Disponible':'green','Alquilada':'blue','Pendiente':'orange','Atrasado':'red','Parcial':'orange','En mantenimiento':'gray'};
+  const c = map[text]||'gray';
+  return `<span class="badge badge-${c}">${esc(text)}</span>`;
+}
+
+function totalItems() {
+  return state.propiedades.length + state.inquilinos.length + state.cobros.length + state.gastos.length;
+}
+
+// ─── TAB NAVIGATION ───────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  currentFilter = 'Todos';
+  searchQ = '';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  render();
+  window.scrollTo(0,0);
+}
+
+function render() {
+  const content = document.getElementById('content');
+  const banner = document.getElementById('banner');
+  const btnDatos = document.getElementById('btn-datos');
+
+  // Show banner when data exists
+  if (totalItems() > 0) {
+    banner.classList.add('show');
+    btnDatos.classList.add('highlight');
+    btnDatos.textContent = '💾 Guardar';
+  } else {
+    banner.classList.remove('show');
+    btnDatos.classList.remove('highlight');
+    btnDatos.textContent = '☁️ Datos';
+  }
+
+  switch(currentTab) {
+    case 'dashboard':    content.innerHTML = renderDashboard(); break;
+    case 'propiedades':  content.innerHTML = renderPropiedades(); break;
+    case 'inquilinos':   content.innerHTML = renderInquilinos(); break;
+    case 'cobros':       content.innerHTML = renderCobros(); break;
+    case 'gastos':       content.innerHTML = renderGastos(); break;
+    case 'informes':     content.innerHTML = renderInformes(); break;
+  }
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────
+function renderDashboard() {
+  const ingTotal = state.cobros.filter(c=>c.estado==='Pagado').reduce((s,c)=>s+Number(c.monto||0),0);
+  const gastTotal = state.gastos.reduce((s,g)=>s+Number(g.monto||0),0);
+  const pend = state.cobros.filter(c=>c.estado==='Pendiente'||c.estado==='Atrasado');
+  const pendTotal = pend.reduce((s,c)=>s+Number(c.monto||0),0);
+  const alquiladas = state.propiedades.filter(p=>p.estado==='Alquilada').length;
+  const prox = [...state.cobros].filter(c=>c.estado==='Pendiente'&&c.fechaVencimiento)
+    .sort((a,b)=>a.fechaVencimiento.localeCompare(b.fechaVencimiento)).slice(0,5);
+
+  const proxHtml = prox.length === 0
+    ? '<p style="color:var(--muted);font-size:14px">Sin cobros pendientes próximos.</p>'
+    : prox.map(c => {
+        const prop = state.propiedades.find(p=>p.id===c.propiedadId);
+        return `<div class="divider-row" style="border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:14px;font-weight:600">${esc(c.concepto)}</div>
+            <div style="font-size:12px;color:var(--muted)">${esc(prop?.nombre||'—')} · ${fmtDate(c.fechaVencimiento)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:700;color:#C0622A">${fmtCurrency(c.monto)}</div>
+            ${badge(c.estado)}
+          </div>
+        </div>`;
+      }).join('');
+
+  return `
+    <h2 class="page-title">Panel de control</h2>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-icon">🏠</div><div class="kpi-value" style="color:var(--navy)">${state.propiedades.length}</div><div class="kpi-label">Propiedades</div><div class="kpi-sub">${alquiladas} alquiladas</div></div>
+      <div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-value" style="color:var(--text2)">${state.inquilinos.length}</div><div class="kpi-label">Inquilinos</div></div>
+      <div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-value" style="color:var(--green)">${fmtCurrency(ingTotal)}</div><div class="kpi-label">Cobrado total</div><div class="kpi-sub">histórico</div></div>
+      <div class="kpi"><div class="kpi-icon">⏳</div><div class="kpi-value" style="color:#C0622A">${pend.length}</div><div class="kpi-label">Pendientes</div><div class="kpi-sub">${fmtCurrency(pendTotal)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-row" style="margin-bottom:12px">
+        <div style="font-size:15px;font-weight:700">Próximos vencimientos</div>
+        <button class="btn-ghost" onclick="switchTab('cobros')">Ver todos →</button>
+      </div>
+      ${proxHtml}
+    </div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Resumen financiero</div>
+      <div class="divider-row"><span style="color:var(--text2)">Ingresos cobrados</span><span style="font-weight:700;color:var(--green)">${fmtCurrency(ingTotal)}</span></div>
+      <div class="divider-row"><span style="color:var(--text2)">Gastos registrados</span><span style="font-weight:700;color:var(--red)">${fmtCurrency(gastTotal)}</span></div>
+      <div class="divider-row" style="border:none"><span style="font-weight:700">Resultado neto</span><span style="font-weight:800;font-size:16px;color:${ingTotal-gastTotal>=0?'var(--green)':'var(--red)'}">${fmtCurrency(ingTotal-gastTotal)}</span></div>
+    </div>`;
+}
+
+// ─── PROPIEDADES ──────────────────────────────────────────
+function renderPropiedades() {
+  const q = searchQ.toLowerCase();
+  const items = state.propiedades.filter(p => !q || `${p.nombre} ${p.direccion} ${p.ciudad}`.toLowerCase().includes(q));
+  const list = items.length === 0
+    ? `<div class="empty"><div class="empty-icon">🏠</div><div class="empty-msg">${searchQ?'Sin resultados':'No hay propiedades aún.'}</div><button class="btn btn-primary" onclick="openPropModal()">Agregar primera propiedad</button></div>`
+    : items.map(p => {
+        const inq = state.inquilinos.find(i=>i.id===p.inquilinoId);
+        return `<div class="card">
+          <div class="card-row">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                <span class="item-title">${esc(p.nombre)}</span>${badge(p.estado)}
+              </div>
+              <div class="item-sub">${esc(p.tipo)}${p.direccion?` · ${esc(p.direccion)}`:''}${p.ciudad?`, ${esc(p.ciudad)}`:''}</div>
+              ${inq?`<div class="item-meta" style="margin-top:3px">👤 ${esc(inq.nombre)} ${esc(inq.apellido)}</div>`:''}
+              ${p.alquilerMensual?`<div style="font-size:14px;font-weight:700;color:var(--accent);margin-top:5px">${fmtCurrency(p.alquilerMensual)}/mes</div>`:''}
+              ${p.notas?`<div style="font-size:12px;color:var(--muted);margin-top:5px;font-style:italic">${esc(p.notas)}</div>`:''}
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" onclick="openPropModal('${p.id}')">✏️</button>
+              <button class="btn-icon danger" onclick="deleteProp('${p.id}')">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  return `
+    <div class="sec-header">
+      <div class="sec-title">Propiedades</div>
+      <button class="btn btn-primary btn-sm" onclick="openPropModal()">+ Nueva</button>
+    </div>
+    <input class="search-input" type="search" placeholder="Buscar..." value="${esc(searchQ)}" oninput="searchQ=this.value;render()">
+    ${list}`;
+}
+
+// ─── INQUILINOS ───────────────────────────────────────────
+function renderInquilinos() {
+  const q = searchQ.toLowerCase();
+  const items = state.inquilinos.filter(i => !q || `${i.nombre} ${i.apellido} ${i.dni}`.toLowerCase().includes(q));
+  const list = items.length === 0
+    ? `<div class="empty"><div class="empty-icon">👤</div><div class="empty-msg">${searchQ?'Sin resultados':'No hay inquilinos registrados.'}</div><button class="btn btn-primary" onclick="openInqModal()">Agregar primer inquilino</button></div>`
+    : items.map(i => {
+        const prop = state.propiedades.find(p=>p.id===i.propiedadId);
+        const df = i.finContrato ? Math.ceil((new Date(i.finContrato)-new Date())/86400000) : null;
+        let vencHtml = '';
+        if (df !== null) {
+          if (df<0) vencHtml = `<div class="venc-warn red">⚠️ Contrato vencido</div>`;
+          else if (df<30) vencHtml = `<div class="venc-warn orange">⚠️ Vence en ${df} días</div>`;
+          else vencHtml = `<div class="venc-warn gray">Contrato hasta ${fmtDate(i.finContrato)}</div>`;
+        }
+        return `<div class="card">
+          <div class="card-row">
+            <div style="flex:1">
+              <div class="item-title">${esc(i.nombre)} ${esc(i.apellido)}</div>
+              <div class="item-sub">DNI: ${esc(i.dni||'—')} · ${esc(i.telefono||'Sin teléfono')}</div>
+              ${prop?`<div class="item-meta" style="margin-top:3px">🏠 ${esc(prop.nombre)}</div>`:''}
+              ${vencHtml}
+              ${i.depositoGarantia?`<div style="font-size:13px;color:var(--green);font-weight:600;margin-top:3px">Depósito: ${fmtCurrency(i.depositoGarantia)}</div>`:''}
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" onclick="openInqModal('${i.id}')">✏️</button>
+              <button class="btn-icon danger" onclick="deleteInq('${i.id}')">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  return `
+    <div class="sec-header">
+      <div class="sec-title">Inquilinos</div>
+      <button class="btn btn-primary btn-sm" onclick="openInqModal()">+ Nuevo</button>
+    </div>
+    <input class="search-input" type="search" placeholder="Buscar por nombre o DNI..." value="${esc(searchQ)}" oninput="searchQ=this.value;render()">
+    ${list}`;
+}
+
+// ─── COBROS ───────────────────────────────────────────────
+function renderCobros() {
+  const filters = ['Todos',...ESTADOS_COBRO];
+  const items = state.cobros
+    .filter(c=>currentFilter==='Todos'||c.estado===currentFilter)
+    .sort((a,b)=>(b.fechaVencimiento||'').localeCompare(a.fechaVencimiento||''));
+  const filterBtns = filters.map(f=>`<button class="filter-btn${currentFilter===f?' active':''}" onclick="currentFilter='${f}';render()">${f}</button>`).join('');
+  const list = items.length===0
+    ? `<div class="empty"><div class="empty-icon">💰</div><div class="empty-msg">No hay cobros registrados.</div><button class="btn btn-primary" onclick="openCobroModal()">Registrar cobro</button></div>`
+    : items.map(c=>{
+        const prop=state.propiedades.find(p=>p.id===c.propiedadId);
+        const inq=state.inquilinos.find(i=>i.id===c.inquilinoId);
+        return `<div class="card">
+          <div class="card-row">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                <span class="item-title">${esc(c.concepto)}</span>${badge(c.estado)}
+              </div>
+              <div class="item-sub">${esc(prop?.nombre||'—')}${inq?` · ${esc(inq.nombre)} ${esc(inq.apellido)}`:''}</div>
+              <div class="item-meta" style="margin-top:2px">Vence: ${fmtDate(c.fechaVencimiento)}${c.fechaPago?` · Pagado: ${fmtDate(c.fechaPago)}`:''}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:8px">
+              <div class="item-amount">${fmtCurrency(c.monto)}</div>
+              <div class="item-actions" style="margin-left:0">
+                <button class="btn-icon" onclick="openCobroModal('${c.id}')">✏️</button>
+                <button class="btn-icon danger" onclick="deleteCobro('${c.id}')">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  return `
+    <div class="sec-header">
+      <div class="sec-title">Cobros</div>
+      <button class="btn btn-primary btn-sm" onclick="openCobroModal()">+ Nuevo</button>
+    </div>
+    <div class="filter-bar">${filterBtns}</div>
+    ${list}`;
+}
+
+// ─── GASTOS ───────────────────────────────────────────────
+function renderGastos() {
+  const filters = ['Todos',...TIPOS_GASTO];
+  const items = state.gastos
+    .filter(g=>currentFilter==='Todos'||g.tipo===currentFilter)
+    .sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  const filterBtns = filters.map(f=>`<button class="filter-btn${currentFilter===f?' active':''}" onclick="currentFilter='${f}';render()">${f}</button>`).join('');
+  const list = items.length===0
+    ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-msg">No hay gastos registrados.</div><button class="btn btn-primary" onclick="openGastoModal()">Registrar gasto</button></div>`
+    : items.map(g=>{
+        const prop=state.propiedades.find(p=>p.id===g.propiedadId);
+        return `<div class="card">
+          <div class="card-row">
+            <div style="flex:1">
+              <div class="item-title">${esc(g.descripcion)}</div>
+              <div class="item-sub">${esc(g.tipo)} · ${esc(prop?.nombre||'General')}</div>
+              <div class="item-meta" style="margin-top:2px">${fmtDate(g.fecha)}${g.proveedor?` · ${esc(g.proveedor)}`:''}${g.comprobante?` · #${esc(g.comprobante)}`:''}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:8px">
+              <div class="item-amount" style="color:var(--red)">${fmtCurrency(g.monto)}</div>
+              <div class="item-actions" style="margin-left:0">
+                <button class="btn-icon" onclick="openGastoModal('${g.id}')">✏️</button>
+                <button class="btn-icon danger" onclick="deleteGasto('${g.id}')">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  return `
+    <div class="sec-header">
+      <div class="sec-title">Gastos</div>
+      <button class="btn btn-primary btn-sm" onclick="openGastoModal()">+ Nuevo</button>
+    </div>
+    <div class="filter-bar">${filterBtns}</div>
+    ${list}`;
+}
+
+// ─── INFORMES ─────────────────────────────────────────────
+function renderInformes() {
+  const mes = new Date().toISOString().slice(0,7);
+  const ingM={}, gastM={};
+  state.cobros.filter(c=>c.estado==='Pagado'&&c.fechaPago).forEach(c=>{const m=c.fechaPago.slice(0,7);ingM[m]=(ingM[m]||0)+Number(c.monto||0);});
+  state.gastos.filter(g=>g.fecha).forEach(g=>{const m=g.fecha.slice(0,7);gastM[m]=(gastM[m]||0)+Number(g.monto||0);});
+  const meses=[...new Set([...Object.keys(ingM),...Object.keys(gastM)])].sort().reverse().slice(0,12).reverse();
+  const ingT=state.cobros.filter(c=>c.estado==='Pagado').reduce((s,c)=>s+Number(c.monto||0),0);
+  const gastT=state.gastos.reduce((s,g)=>s+Number(g.monto||0),0);
+  const gTipo={};
+  state.gastos.forEach(g=>{gTipo[g.tipo]=(gTipo[g.tipo]||0)+Number(g.monto||0);});
+
+  const chartHtml = meses.length===0?'<p style="color:var(--muted);font-size:14px">Sin datos aún.</p>':meses.map(m=>{
+    const ing=ingM[m]||0,gast=gastM[m]||0,mx=Math.max(ing,gast,1);
+    const lbl=new Date(m+'-15').toLocaleDateString('es-AR',{month:'short',year:'2-digit'});
+    return `<div class="chart-row">
+      <div class="chart-label">${lbl}</div>
+      <div class="chart-bar-wrap"><div class="chart-val" style="color:var(--green)">${fmtCurrency(ing)}</div><div class="chart-track"><div class="chart-fill" style="width:${(ing/mx)*100}%;background:var(--green)"></div></div></div>
+      <div class="chart-bar-wrap"><div class="chart-val" style="color:var(--red)">${fmtCurrency(gast)}</div><div class="chart-track"><div class="chart-fill" style="width:${(gast/mx)*100}%;background:var(--red)"></div></div></div>
+    </div>`;
+  }).join('');
+
+  const tipoHtml = Object.keys(gTipo).length===0?'<p style="color:var(--muted);font-size:14px">Sin gastos aún.</p>':
+    Object.entries(gTipo).sort((a,b)=>b[1]-a[1]).map(([t,v])=>`<div class="divider-row"><span style="color:var(--text2)">${esc(t)}</span><span style="font-weight:700;color:var(--red)">${fmtCurrency(v)}</span></div>`).join('');
+
+  const propHtml = state.propiedades.length===0?'<p style="color:var(--muted);font-size:14px">Sin propiedades.</p>':
+    state.propiedades.map(p=>{
+      const v=state.cobros.filter(c=>c.propiedadId===p.id&&c.estado==='Pagado').reduce((s,c)=>s+Number(c.monto||0),0);
+      return `<div class="divider-row"><span>${esc(p.nombre)}</span><span style="font-weight:700;color:var(--green)">${fmtCurrency(v)}</span></div>`;
+    }).join('');
+
+  return `
+    <h2 class="page-title">Informes</h2>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-value" style="color:var(--green)">${fmtCurrency(ingM[mes]||0)}</div><div class="kpi-label">Ingresos este mes</div></div>
+      <div class="kpi"><div class="kpi-icon">📉</div><div class="kpi-value" style="color:var(--red)">${fmtCurrency(gastM[mes]||0)}</div><div class="kpi-label">Gastos este mes</div></div>
+      <div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-value" style="color:var(--green)">${fmtCurrency(ingT)}</div><div class="kpi-label">Ingresos totales</div></div>
+      <div class="kpi"><div class="kpi-icon">⚖️</div><div class="kpi-value" style="color:${ingT-gastT>=0?'var(--green)':'var(--red)'}">${fmtCurrency(ingT-gastT)}</div><div class="kpi-label">Resultado neto</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px"><div style="font-size:15px;font-weight:700;margin-bottom:14px">Ingresos vs Gastos</div>${chartHtml}</div>
+    <div class="card" style="margin-bottom:12px"><div style="font-size:15px;font-weight:700;margin-bottom:14px">Gastos por categoría</div>${tipoHtml}</div>
+    <div class="card"><div style="font-size:15px;font-weight:700;margin-bottom:14px">Por propiedad</div>${propHtml}</div>`;
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────
+function closeModal() {
+  const m = document.getElementById('modal-overlay');
+  if (m) m.remove();
+}
+
+function showModal(title, bodyHtml) {
+  closeModal();
+  const div = document.createElement('div');
+  div.id = 'modal-overlay';
+  div.className = 'modal-overlay';
+  div.innerHTML = `<div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">${esc(title)}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    ${bodyHtml}
+  </div>`;
+  div.addEventListener('click', e => { if(e.target===div) closeModal(); });
+  document.body.appendChild(div);
+}
+
+function fieldHtml(label, inputHtml) {
+  return `<div class="field"><label>${label}</label>${inputHtml}</div>`;
+}
+function inp(name,val='',type='text',placeholder='') {
+  return `<input type="${type}" name="${name}" value="${esc(val)}" placeholder="${esc(placeholder)}" autocomplete="off">`;
+}
+function sel(name,opts,val='') {
+  return `<select name="${name}">${opts.map(o=>`<option value="${esc(o)}"${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+}
+function inqOptions(selId='') {
+  return `<option value="">— Sin asignar —</option>`+state.inquilinos.map(i=>`<option value="${i.id}"${i.id===selId?' selected':''}>${esc(i.nombre)} ${esc(i.apellido)}</option>`).join('');
+}
+function propOptions(selId='') {
+  return `<option value="">— Seleccionar —</option>`+state.propiedades.map(p=>`<option value="${p.id}"${p.id===selId?' selected':''}>${esc(p.nombre)}</option>`).join('');
+}
+
+// ─── PROPIEDAD MODAL ──────────────────────────────────────
+function openPropModal(id) {
+  const p = id ? state.propiedades.find(x=>x.id===id) : {};
+  const isEdit = !!id;
+  const body = `
+    ${fieldHtml('Nombre / Identificador', inp('nombre',p?.nombre,'text','Ej: Depto 3B Palermo'))}
+    <div class="grid-2">
+      ${fieldHtml('Tipo', sel('tipo',TIPOS_PROP,p?.tipo||'Departamento'))}
+      ${fieldHtml('Estado', sel('estado',['Disponible','Alquilada','En mantenimiento'],p?.estado||'Disponible'))}
+    </div>
+    ${fieldHtml('Dirección', inp('direccion',p?.direccion))}
+    <div class="grid-2">
+      ${fieldHtml('Ciudad', inp('ciudad',p?.ciudad))}
+      ${fieldHtml('Provincia', inp('provincia',p?.provincia))}
+    </div>
+    <div class="grid-3">
+      ${fieldHtml('Sup. m²', inp('superficie',p?.superficie,'number'))}
+      ${fieldHtml('Habitaciones', inp('habitaciones',p?.habitaciones,'number'))}
+      ${fieldHtml('Alquiler/mes', inp('alquilerMensual',p?.alquilerMensual,'number'))}
+    </div>
+    ${fieldHtml('Inquilino', `<select name="inquilinoId">${inqOptions(p?.inquilinoId)}</select>`)}
+    ${fieldHtml('Notas', `<textarea name="notas">${esc(p?.notas||'')}</textarea>`)}
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProp('${id||''}')">Guardar</button>
+    </div>`;
+  showModal(isEdit?'Editar propiedad':'Nueva propiedad', body);
+}
+
+function saveProp(id) {
+  const m = document.getElementById('modal-overlay');
+  const get = n => m.querySelector(`[name="${n}"]`)?.value||'';
+  const nombre = get('nombre');
+  if (!nombre) { alert('El nombre es obligatorio'); return; }
+  const data = {nombre,tipo:get('tipo'),direccion:get('direccion'),ciudad:get('ciudad'),provincia:get('provincia'),superficie:get('superficie'),habitaciones:get('habitaciones'),alquilerMensual:get('alquilerMensual'),inquilinoId:get('inquilinoId'),estado:get('estado'),notas:get('notas')};
+  if (id) {
+    const idx = state.propiedades.findIndex(x=>x.id===id);
+    state.propiedades[idx] = {...state.propiedades[idx],...data};
+  } else {
+    state.propiedades.push({...data,id:uid(),creadoEn:today()});
+  }
+  save(); closeModal(); render();
+}
+
+function deleteProp(id) {
+  const p = state.propiedades.find(x=>x.id===id);
+  if (confirm(`¿Eliminar "${p?.nombre}"?`)) { state.propiedades=state.propiedades.filter(x=>x.id!==id); save(); render(); }
+}
+
+// ─── INQUILINO MODAL ──────────────────────────────────────
+function openInqModal(id) {
+  const i = id ? state.inquilinos.find(x=>x.id===id) : {};
+  const body = `
+    <div class="grid-2">
+      ${fieldHtml('Nombre', inp('nombre',i?.nombre))}
+      ${fieldHtml('Apellido', inp('apellido',i?.apellido))}
+    </div>
+    <div class="grid-2">
+      ${fieldHtml('DNI / CUIT', inp('dni',i?.dni))}
+      ${fieldHtml('Teléfono', inp('telefono',i?.telefono,'tel'))}
+    </div>
+    ${fieldHtml('Email', inp('email',i?.email,'email'))}
+    ${fieldHtml('Propiedad', `<select name="propiedadId"><option value="">— Sin asignar —</option>${state.propiedades.map(p=>`<option value="${p.id}"${p.id===i?.propiedadId?' selected':''}>${esc(p.nombre)}</option>`).join('')}</select>`)}
+    <div class="grid-2">
+      ${fieldHtml('Inicio contrato', inp('inicioContrato',i?.inicioContrato||today(),'date'))}
+      ${fieldHtml('Fin contrato', inp('finContrato',i?.finContrato,'date'))}
+    </div>
+    ${fieldHtml('Depósito de garantía (ARS)', inp('depositoGarantia',i?.depositoGarantia,'number'))}
+    ${fieldHtml('Notas', `<textarea name="notas">${esc(i?.notas||'')}</textarea>`)}
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveInq('${id||''}')">Guardar</button>
+    </div>`;
+  showModal(id?'Editar inquilino':'Nuevo inquilino', body);
+}
+
+function saveInq(id) {
+  const m = document.getElementById('modal-overlay');
+  const get = n => m.querySelector(`[name="${n}"]`)?.value||'';
+  if (!get('nombre')||!get('apellido')) { alert('Nombre y apellido son obligatorios'); return; }
+  const data = {nombre:get('nombre'),apellido:get('apellido'),dni:get('dni'),email:get('email'),telefono:get('telefono'),propiedadId:get('propiedadId'),inicioContrato:get('inicioContrato'),finContrato:get('finContrato'),depositoGarantia:get('depositoGarantia'),notas:get('notas')};
+  if (id) { const idx=state.inquilinos.findIndex(x=>x.id===id); state.inquilinos[idx]={...state.inquilinos[idx],...data}; }
+  else { state.inquilinos.push({...data,id:uid(),creadoEn:today()}); }
+  save(); closeModal(); render();
+}
+
+function deleteInq(id) {
+  const i=state.inquilinos.find(x=>x.id===id);
+  if(confirm(`¿Eliminar a ${i?.nombre} ${i?.apellido}?`)) { state.inquilinos=state.inquilinos.filter(x=>x.id!==id); save(); render(); }
+}
+
+// ─── COBRO MODAL ──────────────────────────────────────────
+function openCobroModal(id) {
+  const c = id ? state.cobros.find(x=>x.id===id) : {};
+  const body = `
+    <div class="grid-2">
+      ${fieldHtml('Propiedad', `<select name="propiedadId">${propOptions(c?.propiedadId)}</select>`)}
+      ${fieldHtml('Inquilino', `<select name="inquilinoId"><option value="">— Seleccionar —</option>${state.inquilinos.map(i=>`<option value="${i.id}"${i.id===c?.inquilinoId?' selected':''}>${esc(i.nombre)} ${esc(i.apellido)}</option>`).join('')}</select>`)}
+    </div>
+    ${fieldHtml('Concepto', inp('concepto',c?.concepto||'Alquiler mensual'))}
+    <div class="grid-2">
+      ${fieldHtml('Monto (ARS)', inp('monto',c?.monto,'number'))}
+      ${fieldHtml('Estado', sel('estado',ESTADOS_COBRO,c?.estado||'Pendiente'))}
+    </div>
+    <div class="grid-2">
+      ${fieldHtml('Vencimiento', inp('fechaVencimiento',c?.fechaVencimiento||today(),'date'))}
+      ${fieldHtml('Fecha de pago', inp('fechaPago',c?.fechaPago,'date'))}
+    </div>
+    ${fieldHtml('Método de pago', sel('metodoPago',['Transferencia','Efectivo','Cheque','Otro'],c?.metodoPago||'Transferencia'))}
+    ${fieldHtml('Notas', `<textarea name="notas">${esc(c?.notas||'')}</textarea>`)}
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCobro('${id||''}')">Guardar</button>
+    </div>`;
+  showModal(id?'Editar cobro':'Nuevo cobro', body);
+}
+
+function saveCobro(id) {
+  const m=document.getElementById('modal-overlay');
+  const get=n=>m.querySelector(`[name="${n}"]`)?.value||'';
+  if(!get('monto')) { alert('El monto es obligatorio'); return; }
+  const data={propiedadId:get('propiedadId'),inquilinoId:get('inquilinoId'),concepto:get('concepto'),monto:get('monto'),estado:get('estado'),fechaVencimiento:get('fechaVencimiento'),fechaPago:get('fechaPago'),metodoPago:get('metodoPago'),notas:get('notas')};
+  if(id) { const idx=state.cobros.findIndex(x=>x.id===id); state.cobros[idx]={...state.cobros[idx],...data}; }
+  else { state.cobros.push({...data,id:uid(),creadoEn:today()}); }
+  save(); closeModal(); render();
+}
+
+function deleteCobro(id) {
+  if(confirm('¿Eliminar este cobro?')) { state.cobros=state.cobros.filter(x=>x.id!==id); save(); render(); }
+}
+
+// ─── GASTO MODAL ──────────────────────────────────────────
+function openGastoModal(id) {
+  const g = id ? state.gastos.find(x=>x.id===id) : {};
+  const body = `
+    <div class="grid-2">
+      ${fieldHtml('Propiedad', `<select name="propiedadId"><option value="">— General —</option>${state.propiedades.map(p=>`<option value="${p.id}"${p.id===g?.propiedadId?' selected':''}>${esc(p.nombre)}</option>`).join('')}</select>`)}
+      ${fieldHtml('Tipo', sel('tipo',TIPOS_GASTO,g?.tipo||'Mantenimiento'))}
+    </div>
+    ${fieldHtml('Descripción', inp('descripcion',g?.descripcion))}
+    <div class="grid-2">
+      ${fieldHtml('Monto (ARS)', inp('monto',g?.monto,'number'))}
+      ${fieldHtml('Fecha', inp('fecha',g?.fecha||today(),'date'))}
+    </div>
+    <div class="grid-2">
+      ${fieldHtml('Proveedor', inp('proveedor',g?.proveedor))}
+      ${fieldHtml('Nº Comprobante', inp('comprobante',g?.comprobante))}
+    </div>
+    ${fieldHtml('Notas', `<textarea name="notas">${esc(g?.notas||'')}</textarea>`)}
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGasto('${id||''}')">Guardar</button>
+    </div>`;
+  showModal(id?'Editar gasto':'Nuevo gasto', body);
+}
+
+function saveGasto(id) {
+  const m=document.getElementById('modal-overlay');
+  const get=n=>m.querySelector(`[name="${n}"]`)?.value||'';
+  if(!get('monto')||!get('descripcion')) { alert('Descripción y monto son obligatorios'); return; }
+  const data={propiedadId:get('propiedadId'),tipo:get('tipo'),descripcion:get('descripcion'),monto:get('monto'),fecha:get('fecha'),proveedor:get('proveedor'),comprobante:get('comprobante'),notas:get('notas')};
+  if(id) { const idx=state.gastos.findIndex(x=>x.id===id); state.gastos[idx]={...state.gastos[idx],...data}; }
+  else { state.gastos.push({...data,id:uid(),creadoEn:today()}); }
+  save(); closeModal(); render();
+}
+
+function deleteGasto(id) {
+  if(confirm('¿Eliminar este gasto?')) { state.gastos=state.gastos.filter(x=>x.id!==id); save(); render(); }
+}
+
+// ─── DATA MODAL ───────────────────────────────────────────
+let dataModalMode = 'save';
+function openDataModal() {
+  dataModalMode = 'save';
+  renderDataModal();
+}
+
+function renderDataModal() {
+  const json = JSON.stringify(state, null, 2);
+  const fname = `tresmanzanas-propiedades-${today()}.json`;
+  const body = `
+    <div class="tab-switcher">
+      <button class="tab-sw-btn${dataModalMode==='save'?' active':''}" onclick="dataModalMode='save';renderDataModal()">💾 Guardar</button>
+      <button class="tab-sw-btn${dataModalMode==='load'?' active':''}" onclick="dataModalMode='load';renderDataModal()">📂 Restaurar</button>
+    </div>
+    ${dataModalMode==='save'?`
+      <div class="info-box orange">
+        Descargá el archivo y guardalo en iCloud Drive o Google Drive para restaurarlo en cualquier dispositivo.
+      </div>
+      <button class="btn btn-primary full" style="margin-bottom:10px" onclick="downloadData()">⬇️ Descargar archivo .json</button>
+      <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:14px">
+        ${state.propiedades.length} prop. · ${state.inquilinos.length} inq. · ${state.cobros.length} cobros · ${state.gastos.length} gastos
+      </div>
+      <div class="info-box gray">
+        💡 <strong>Dónde guardarlo:</strong> Archivos → iCloud Drive. Estará disponible desde cualquier dispositivo con tu cuenta de iCloud.
+      </div>
+    `:`
+      <div class="info-box blue">
+        Seleccioná el archivo <strong>.json</strong> que descargaste previamente.
+      </div>
+      <label class="btn btn-primary full" style="margin-bottom:12px;cursor:pointer">
+        📁 Seleccionar archivo .json
+        <input type="file" accept=".json,application/json,text/*,*/*" style="display:none" onchange="importData(this)">
+      </label>
+      <div id="import-err" style="display:none" class="alert alert-red"></div>
+      <div class="info-box gray">
+        💡 Buscá en Archivos → iCloud Drive el archivo <strong>tresmanzanas-propiedades-[fecha].json</strong>
+      </div>
+    `}`;
+  showModal('Guardar / Restaurar datos', body);
+}
+
+function downloadData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tresmanzanas-propiedades-${today()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const errEl = document.getElementById('import-err');
+    try {
+      const p = JSON.parse(e.target.result);
+      if (!Array.isArray(p.propiedades)||!Array.isArray(p.inquilinos)||!Array.isArray(p.cobros)||!Array.isArray(p.gastos)) {
+        errEl.textContent='El archivo no tiene el formato correcto.'; errEl.style.display='block'; return;
+      }
+      if (confirm(`¿Cargar estos datos?\n• ${p.propiedades.length} propiedades\n• ${p.inquilinos.length} inquilinos\n• ${p.cobros.length} cobros\n• ${p.gastos.length} gastos`)) {
+        state = p; save(); closeModal(); render();
+      }
+    } catch { errEl.textContent='Archivo inválido.'; errEl.style.display='block'; }
+  };
+  reader.readAsText(file);
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+loadData();
+render();
+</script>
+</body>
+</html>
